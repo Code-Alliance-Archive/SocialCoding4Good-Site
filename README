@@ -17,6 +17,11 @@ Run the following, replacing [db_pass] with the password from above and [server_
   drush site-install standard --db-url=mysql://sc4g_user:[db_pass]@localhost/sc4g_site --site-name="Social Coding 4 Good"
   sudo chown -R [server_user] sites/default/files
 
-If your server can't use clean URLs, run the following command:
+If your server can't use clean URLs (ie, Apache doesn't have mod_rewrite enabled, or the directory where Drupal is install doesn't have AllowOverride on), run the following command:
   drush vset clean_url 0 --yes
+
+If you are setting up a development environment and want to set up the unit tests:
+  drush en -y simpletest
+
+
 
