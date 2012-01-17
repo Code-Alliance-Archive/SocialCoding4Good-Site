@@ -1,0 +1,22 @@
+Setting up your Drupal environment:
+
+Create a mysql database, user, and password.  The database will be called sc4g_site, the user will be called sc4g_user, and you should make your own password where you see [db_pass]:
+  mysqladmin -u root -p create sc4g_site
+  mysql -u root -p
+  GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, INDEX, ALTER, CREATE
+  TEMPORARY TABLES, LOCK TABLES 
+  ON sc4g_site.*
+  TO 'sc4g_user'@'localhost' IDENTIFIED BY '[db_pass]';
+
+Install Drush:
+  sudo apt-get install drush
+
+Run the following, replacing [db_pass] with the password from above and [server_user] with your server's user (usually www-data on apache2):
+  drush dl drupal --drupal-project-rename=sc4g-site
+  cd sc4g-site
+  drush site-install standard --db-url=mysql://sc4g_user:[db_pass]@localhost/sc4g_site --site-name="Social Coding 4 Good"
+  sudo chown -R [server_user] sites/default/files
+
+If your server can't use clean URLs, run the following command:
+  drush vset clean_url 0 --yes
+
