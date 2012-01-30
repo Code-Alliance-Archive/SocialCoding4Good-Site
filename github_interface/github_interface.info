@@ -1,0 +1,3 @@
+name = GitHub interface
+description = Allows users to pull information from a GitHub issue tracker and view a subset of the issues within that tracker from Drupal.
+core = 7.x
