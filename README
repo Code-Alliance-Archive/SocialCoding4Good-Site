@@ -1,6 +1,8 @@
 Setting up your Drupal environment:
 
-Create a mysql database, user, and password.  The database will be called sc4g_site, the user will be called sc4g_user, and you should make your own password where you see [db_pass]:
+Create a mysql database, user, and password.  The database will be called
+sc4g_site, the user will be called sc4g_user, and you should make your own
+password where you see [db_pass]:
   mysqladmin -u root -p create sc4g_site
   mysql -u root -p
   GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, INDEX, ALTER, CREATE
@@ -11,17 +13,65 @@ Create a mysql database, user, and password.  The database will be called sc4g_s
 Install Drush:
   sudo apt-get install drush
 
-Run the following, replacing [db_pass] with the password from above and [server_user] with your server's user (usually www-data on apache2):
+Run the following, replacing [db_pass] with the password from above and
+[server_user] with your server's user (usually www-data on apache2):
   drush dl drupal --drupal-project-rename=sc4g-site
   cd sc4g-site
   drush site-install standard --db-url=mysql://sc4g_user:[db_pass]@localhost/sc4g_site --site-name="Social Coding 4 Good"
   sudo chown -R [server_user] sites/default/files
 
-If your server can't use clean URLs (ie, Apache doesn't have mod_rewrite enabled, or the directory where Drupal is install doesn't have AllowOverride on), run the following command:
+If your server can't use clean URLs (ie, Apache doesn't have mod_rewrite
+enabled, or the directory where Drupal is install doesn't have AllowOverride
+on), run the following command:
   drush vset clean_url 0 --yes
 
-If you are setting up a development environment and want to set up the unit tests:
+If you are setting up a development environment and want to set up the unit
+tests:
   drush en -y simpletest
 
+Install and enable views and the admin UI, which will allow displaying issues:
+  drush dl views
+  drush en -y views views_ui
 
+Now, add the Github Interface module using the following commands, replacing the
+paths in brackets with their actual values:
+  cp -r [path/to/sc4g-dev/repo]/github_interface [path/to/sc4g-site]/sites/all/modules/
+  drush en -y github_interface
+
+Using the UI, login as an administrator.  The username and password should be
+admin.  
+  You should change the password now.
+  Go to Structure > Content Types > Add Content Type and fill it out as
+  following:
+    Name: Issue
+    Description: A node representing an issue pulled from an isuse tracker
+    Publishing Options: Uncheck "Promoted to Front Page"
+    Display Settings: Uncheck "Display Author and Date Information"
+    Comment Settings: Closed
+  Click on Save and add fields.  
+    Add a new field with label Issue ID, field issue_id, type integer, and save.
+    Save again on the next two screens that you are presented with.
+    Add a new field with label Issue URL, field issue_url, type text, and save.
+    Save again on the next two screens that you are presented with.
+    Add a new field with label Repo URL, field repo_url, type text, and save.
+    Save again on the next two screens that you are presented with.
+  Click on Structure > Views > Add New View
+    View Name: Issues
+    Show content of type: Issue
+    Continue and Edit
+    Menu > Normal Menu Entry
+    Title: Issues
+    Apply
+    Save
+  Go to Configuration > GitHub Interface Configuration
+    Put in the API URL to your GitHub repo
+    Save
+  Click on Configuration > GitHub Interface Update
+    There will be an Apache error page, but that's just because of a lack of a
+    view.
+    Now, you should have new content.  To verify this, go to the Issues page
+    from the menu on the left sidebar.  
+    If the content was not pulled, try clearing the cache in Configuration >
+    Performance > Clear All.  Then, try clicking on the GitHub Interface Update
+    again.
 
