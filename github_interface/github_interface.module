@@ -106,3 +106,41 @@ function github_interface_form($form, &$form_state) {
   return system_settings_form($form);
 }
 
+/**
+ *  Allows the user to add an API url to their main account
+ *  Implements hook_form_FROM_ID_alter().
+ *  See http://www.braahm.be/node/7
+ */
+function github_interface_form_user_profile_form_alter(&$form, &$form_state) {
+  $account = $form['#user'];
+
+  $form['project-info'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Project info'),
+    '#description' => 'Provide information about your project',
+    '#collapsed' => FALSE,
+    '#collapsible' => TRUE,
+    '#weight' => 10,
+  );
+
+  $form['project-info']['github-api-url'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Github API URL'),
+    '#description' => t('Provide a GitHub URL from which to load issues'),
+    '#default_value' => isset($account->data['github-api-url']) ? 
+                        $account->data['github-api-url'] : '',
+  );
+}
+
+/**
+ * Implements hook_user_presave().
+ *
+ * We want to store the API URL settings in the data field and make it part of 
+ * the user object.
+ * See http://www.braahm.be/node/7
+ */
+function github_interface_user_presave(&$edit, $account, $category) {
+  $edit['data']['github-api-url'] = isset($edit['github-api-url']) ? 
+                                    $edit['github-api-url'] : '';
+}
+
