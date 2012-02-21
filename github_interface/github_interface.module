@@ -25,12 +25,17 @@ function github_interface_help($path, $arg) {
 }
 
 /**
- * Saves issues from the Social Coding 4 Good github repo as nodes 
+ * Saves issues from the current user's github repo as nodes 
  * @todo make general with API url and with label
  * @todo add support for label filtering
  * @todo add support for overwriting nodes
  */
-function github_interface_save_github_nodes($repo_url) {
+function github_interface_save_github_nodes() {
+  // help on getting data from profile2 at http://drupal.org/node/1310060
+  global $user;
+  $profile = profile2_load_by_user($user->uid, 'project');
+  $repo_url = $profile->field_github_api_url['und'][0]['value'];
+
   $github_json = file_get_contents($repo_url);
   $github_obj = json_decode($github_json, $assoc=true);
 
@@ -52,95 +57,30 @@ function github_interface_save_github_nodes($repo_url) {
     $node->field_repo_url[$node->language][0]['value'] = $repo_url;
     node_save($node);
   }
+
+  //Redirect the user back to their profile page with a message
+  //@todo: print success, failure, or statistics about the fetch
+  drupal_set_message('Success!');
+  drupal_goto('user/' . $user->uid);
 }
 
 /**
  * Implements hook_menu().
+ *
+ * Adds a tab in each user's profile page (if they are a project and, thus, can 
+ * create new issues) to pull issues from github.  This will use the API url 
+ * that they saved in their profile.
  */
 function github_interface_menu() {
-  $items = array();
-
-  // config
-  $items['admin/config/content/github_interface_form'] = array(
-    'title' => 'Github interface configuration',
-    'description' => 'Configuration for Github interface module',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('github_interface_form'),
-    'access arguments' => array('access administration pages'),
-    'type' => MENU_NORMAL_ITEM,
-  );
-
-  // callback
-  // @todo causes apache server error after running the function
-  $items['admin/config/content/github_interface_update'] = array(
-    'title' => 'Github interface update',
-    'description' => 'After putting info into the form, this will pull data ' .
-                     'from the issue tracker',
+  $items['user/%user/github_interface'] = array(
+    'title' => 'Pull issues from github',
+    'description' => 'This will pull data from the issue tracker',
     'page callback' => 'github_interface_save_github_nodes',
-    'page arguments' => array(variable_get('github_repo_url')),
-    'access arguments' => array('access administration pages'),
-    'type' => MENU_NORMAL_ITEM,
+    'access callback' => 'user_access',
+    'access arguments' => array('create issue content'),
+    'type' => MENU_LOCAL_TASK,
   );
 
   return $items;
-}
-
-/**
- * Form function, called by drupal_get_form() in github_interface_menu().
- * Allows an administrator to specify the URL of a github repo to pull issues 
- * from.
- * @todo store this on a per-user basis rather than on a system wide basis.  
- * Will also require updating github_interface_save_github_nodes().
- */
-function github_interface_form($form, &$form_state) {
-  $form['github_repo_url'] = array(
-    '#type' => 'textfield',
-    '#title' => t('URL of the repo to pull issues from'),
-    '#default_value' => variable_get('github_repo_url', ''),
-    '#size' => 30,
-    '#description' => t('The API URL should look like:  https://api.github' .
-        '.com/repos/YOUR_GITHUB_USERNAME/YOUR_GITHUB_PROJECT/issues'),
-    '#required' => TRUE,
-  );
-
-  return system_settings_form($form);
-}
-
-/**
- *  Allows the user to add an API url to their main account
- *  Implements hook_form_FROM_ID_alter().
- *  See http://www.braahm.be/node/7
- */
-function github_interface_form_user_profile_form_alter(&$form, &$form_state) {
-  $account = $form['#user'];
-
-  $form['project-info'] = array(
-    '#type' => 'fieldset',
-    '#title' => t('Project info'),
-    '#description' => 'Provide information about your project',
-    '#collapsed' => FALSE,
-    '#collapsible' => TRUE,
-    '#weight' => 10,
-  );
-
-  $form['project-info']['github-api-url'] = array(
-    '#type' => 'textarea',
-    '#title' => t('Github API URL'),
-    '#description' => t('Provide a GitHub URL from which to load issues'),
-    '#default_value' => isset($account->data['github-api-url']) ? 
-                        $account->data['github-api-url'] : '',
-  );
-}
-
-/**
- * Implements hook_user_presave().
- *
- * We want to store the API URL settings in the data field and make it part of 
- * the user object.
- * See http://www.braahm.be/node/7
- */
-function github_interface_user_presave(&$edit, $account, $category) {
-  $edit['data']['github-api-url'] = isset($edit['github-api-url']) ? 
-                                    $edit['github-api-url'] : '';
 }
 
