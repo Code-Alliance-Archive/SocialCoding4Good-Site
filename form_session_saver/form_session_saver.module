@@ -72,7 +72,8 @@ function form_session_saver_init() {
   $default_page = 'volunteer';
   $pages_to_save_str = variable_get('form_session_saver_page', $default_page);
   $pages_to_save = preg_split('[ ]', $pages_to_save_str);
-  $current_page = $_GET['q'];
+  $current_page = drupal_lookup_path($action='alias', $path=$_GET['q']);
+
 
   # if we're on one of the the pages that we want to save
   if (in_array($current_page, $pages_to_save)) {
