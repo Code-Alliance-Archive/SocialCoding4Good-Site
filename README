@@ -33,6 +33,13 @@ Install and enable views and the admin UI, which will allow displaying issues:
   drush dl views
   drush en -y views views_ui
 
+Enable profile2:
+  drush dl -y profile2
+  drush en -y profile2
+
+Enable books:
+  drush en -y books
+
 Now, add the Github Interface module using the following commands, replacing the
 paths in brackets with their actual values:
   cp -r [path/to/sc4g-dev/repo]/github_interface [path/to/sc4g-site]/sites/all/modules/
@@ -75,3 +82,31 @@ admin.
     Performance > Clear All.  Then, try clicking on the GitHub Interface Update
     again.
 
+Create a project profile type:
+  Structure > Profile Types
+  Add Profile Type:
+    label: project
+  Manage Fields
+  Add a New Field
+    Github API URL, github_api_url, text
+    Help text: If you want to pull issues from an existing Github issue tracker,
+    please provide the URL here.  See all API parameters at
+    http://developer.github.com/v3/issues/.  The URL should look like
+    https://api.github.com/repos/SocialCoding4Good/SocialCoding4Good-Site/issues?labels=volunteer
+
+Create a 'project' user type:
+  People > Permissions > Roles
+  Add Role - Project
+  Edit Permissions - Add the following:
+    Issue: Create New Content
+    Issue: Edit Own Content
+    Issue: Delete Own Content
+    Project: Edit own profile
+    Project: View own profile
+
+Now, everything is set up.  For a Community Manager, the workflow is as follows:
+  Create an account
+  Add in an API URL to the user profile
+  Click the 'Pull issues from repo' button on the user profile
+  Create nodes for each component
+  Add each issue that was pulled from the repo to its component.
