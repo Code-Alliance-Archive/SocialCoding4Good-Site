@@ -1,0 +1,4 @@
+name = Form session saver
+description = Allows the user to enter a page name where all URL variables will be saved for the next time that they enter the page.
+core = 7.x
+configure = admin/config/form_session_saver_form

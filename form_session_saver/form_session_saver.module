@@ -1,0 +1,95 @@
+<?php
+
+/**
+ * @file
+ * @todo describe the file once I know what it does
+ */
+
+/**
+ * Implements hook_help.
+ *
+ * Displays help and module information.
+ *
+ * @param path
+ *   Path of the site we're using to display help
+ * @param arg
+ *   Array that holds the current path as returned from arg() function
+ */
+function form_session_saver_help($path, $arg) {
+  switch ($path) {
+    case "admin/help#form_session_saver":
+      return '<p>'.t("Saves REQUEST variables to the session for a particular ".
+                     "page").'</p>';
+      break;
+  }
+}
+
+/**
+ * Implements hook_menu().
+ */
+function form_session_saver_menu() {
+  $items = array();
+
+  // config
+  $items['admin/config/form_session_saver_form'] = array(
+    'title' => 'Form session saver configuration',
+    'description' => 'Configuration for form session saver module',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('form_session_saver_form'),
+    'access arguments' => array('access administration pages'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+  return $items;
+}
+
+/**
+ * Form function, called by drupal_get_form() in form_session_saver_menu().
+ * Allows an administrator to specify the path that will have its REQUEST 
+ * variables saved to the session.
+ */
+function form_session_saver_form($form, &$form_state) {
+  $form['form_session_saver_page'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Path of the page to save'),
+    '#default_value' => variable_get('form_session_saver_page', ''),
+    '#size' => 30,
+    '#description' => t('To save multiple pages, space delimit them.  For ' .
+                        'instance, the path should look like: volunteer home'),
+    '#required' => TRUE,
+  );
+
+  return system_settings_form($form);
+}
+
+/**
+ * Implements hook_init
+ *
+ * Stores the REQUEST variables to the user's session on every load of specified
+ * pages.
+ */
+function form_session_saver_init() {
+  $default_page = 'volunteer';
+  $pages_to_save_str = variable_get('form_session_saver_page', $default_page);
+  $pages_to_save = preg_split('[ ]', $pages_to_save_str);
+  $current_page = $_GET['q'];
+
+  # if we're on one of the the pages that we want to save
+  if (in_array($current_page, $pages_to_save)) {
+    if (!isset($_SESSION['form_session_saver_variables'])) {
+      $_SESSION['form_session_saver_variables'] = array();
+    }
+    # We want to actually affect the session, so use a reference
+    $saved_vars = &$_SESSION['form_session_saver_variables'];
+    # if we already have something saved
+    if (isset($saved_vars[$current_page])) {
+      # Adds the saved variables to the current _REQUEST array.  Anything 
+      # specified in the current array has precedence (so, if I specify 
+      # something, it won't be overwritten by a saved value).
+      $_REQUEST = array_merge($saved_vars[$current_page], $_REQUEST);
+    }
+    # regardless of whether or not we loaded saved variables, we want to re-save
+    $saved_vars[$current_page] = $_REQUEST;
+  }
+}
+
