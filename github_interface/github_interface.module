@@ -32,6 +32,7 @@ function github_interface_save_github_nodes() {
   global $user;
   $profile = profile2_load_by_user($user->uid, 'project');
   $repo_url = $profile->field_github_api_url['und'][0]['value'];
+  # $project_id = # @todo get the ID of the project that these issues belong to
 
   $github_json = file_get_contents($repo_url);
   $github_obj = json_decode($github_json, $assoc=true);
@@ -51,7 +52,7 @@ function github_interface_save_github_nodes() {
     );
     $node->field_issue_id[$node->language][0]['value'] = $issue['id'];
     $node->field_issue_url[$node->language][0]['value'] = $issue['html_url'];
-    $node->field_repo_url[$node->language][0]['value'] = $repo_url;
+    # $node->field_project_id[$node->language][0]['value'] = $project_id; @todo
 
     // is there already a node similar to the one we're adding?
     $query = new EntityFieldQuery();
@@ -59,7 +60,8 @@ function github_interface_save_github_nodes() {
       ->entityCondition('entity_type', 'node', '=') // a node
       ->entityCondition('bundle', 'issue', '=') // an issue
       ->propertyCondition('status', 1, '=') // published
-      #->fieldCondition('field_repo_url', 'value', $repo_url, '=') // same repo
+      # ->fieldCondition('field_project_id', 'value', $project_id, '=') @todo
+                                                                // same project
       ->fieldCondition('field_issue_id', 'value', $issue['id'], '='); // same id
     $result = $query->execute();
 
