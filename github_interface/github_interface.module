@@ -26,9 +26,6 @@ function github_interface_help($path, $arg) {
 
 /**
  * Saves issues from the current user's github repo as nodes 
- * @todo make general with API url and with label
- * @todo add support for label filtering
- * @todo add support for overwriting nodes
  */
 function github_interface_save_github_nodes() {
   // help on getting data from profile2 at http://drupal.org/node/1310060
@@ -55,12 +52,32 @@ function github_interface_save_github_nodes() {
     $node->field_issue_id[$node->language][0]['value'] = $issue['id'];
     $node->field_issue_url[$node->language][0]['value'] = $issue['html_url'];
     $node->field_repo_url[$node->language][0]['value'] = $repo_url;
+
+    // is there already a node similar to the one we're adding?
+    $query = new EntityFieldQuery();
+    $query
+      ->entityCondition('entity_type', 'node', '=') // a node
+      ->entityCondition('bundle', 'issue', '=') // an issue
+      ->propertyCondition('status', 1, '=') // published
+      #->fieldCondition('field_repo_url', 'value', $repo_url, '=') // same repo
+      ->fieldCondition('field_issue_id', 'value', $issue['id'], '='); // same id
+    $result = $query->execute();
+
+    // if the issue we're adding already exists, make sure that we don't 
+    // duplicate it.
+    if (count($result) != 0) {
+      $existing_nodes = array_values($result['node']);
+      $existing_node= $existing_nodes[0];
+      $node->nid = $existing_node->nid;
+      $node->vid = $existing_node->vid;
+      $node->revision = TRUE;
+    }
     node_save($node);
   }
 
   //Redirect the user back to their profile page with a message
-  //@todo: print success, failure, or statistics about the fetch
-  drupal_set_message('Success!');
+  //@todo: print success statistics about the fetch
+  drupal_set_message('Nodes Added / Updated!');
   drupal_goto('user/' . $user->uid);
 }
 
