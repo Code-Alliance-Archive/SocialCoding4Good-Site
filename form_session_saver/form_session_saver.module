@@ -2,7 +2,8 @@
 
 /**
  * @file
- * @todo describe the file once I know what it does
+ * Saves REQUEST variables to the session so that users can wander around and 
+ * still have their forms prepopulated.
  */
 
 /**
@@ -55,8 +56,20 @@ function form_session_saver_form($form, &$form_state) {
     '#default_value' => variable_get('form_session_saver_page', ''),
     '#size' => 30,
     '#description' => t('To save multiple pages, space delimit them.  For ' .
-                        'instance, the path should look like: volunteer home'),
-    '#required' => TRUE,
+                        'instance, the path should look like: volunteer home' .
+                        '. If you leave this blank, it will apply to all ' .
+                        'pages.'),
+  );
+
+  $form['form_session_saver_is_global'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Global?'),
+    '#default_value' => variable_get('form_session_saver_is_global', 1),
+    '#description' => t('If this box is checked, saved variables will be ' .
+      'global.  That means that I I go to /page1?name=foo and then I visit ' .
+      '/page2, it will be as if I visited /page2?name=foo.  If the box is not '.
+      'checked, then saved variables only apply to the page that the variable '.
+      'comes from.'),
   );
 
   return system_settings_form($form);
@@ -69,28 +82,44 @@ function form_session_saver_form($form, &$form_state) {
  * pages.
  */
 function form_session_saver_init() {
-  $default_page = 'volunteer';
-  $pages_to_save_str = variable_get('form_session_saver_page', $default_page);
-  $pages_to_save = preg_split('[ ]', $pages_to_save_str);
+  $is_global = variable_get('form_session_saver_is_global', 1);
+  $pages_to_save_str = variable_get('form_session_saver_page', '');
+  $pages_to_save = preg_split('[ ]', $pages_to_save_str, -1, 
+                              PREG_SPLIT_NO_EMPTY);
+
+  # If the path is an alias, look it up.  Otherwise, just use it directly.
   $current_page = drupal_lookup_path($action='alias', $path=$_GET['q']);
+  if (!$current_page) {
+    $current_page = $_GET['q'];
+  }
 
-
-  # if we're on one of the the pages that we want to save
-  if (in_array($current_page, $pages_to_save)) {
+  # if we want to work on all pages or if we're on one of the the pages that we 
+  # want to save
+  if (count($pages_to_save) == 0 || in_array($current_page, $pages_to_save)) {
     if (!isset($_SESSION['form_session_saver_variables'])) {
       $_SESSION['form_session_saver_variables'] = array();
     }
     # We want to actually affect the session, so use a reference
     $saved_vars = &$_SESSION['form_session_saver_variables'];
-    # if we already have something saved
-    if (isset($saved_vars[$current_page])) {
-      # Adds the saved variables to the current _REQUEST array.  Anything 
-      # specified in the current array has precedence (so, if I specify 
-      # something, it won't be overwritten by a saved value).
+
+    # If we already have something saved, Adds the saved variables to the 
+    # current _REQUEST array.  Anything specified in the current array has 
+    # precedence (so, if I specify something, it won't be overwritten by a saved
+    # value).
+    if ($is_global) {
+      $_REQUEST = array_merge($saved_vars, $_REQUEST);
+    } else if (isset($saved_vars[$current_page])) {
       $_REQUEST = array_merge($saved_vars[$current_page], $_REQUEST);
     }
+
     # regardless of whether or not we loaded saved variables, we want to re-save
-    $saved_vars[$current_page] = $_REQUEST;
+    if ($is_global) {
+      foreach ($_REQUEST as $key => $value) {
+        $saved_vars[$key] = $value;
+      }
+    } else {
+      $saved_vars[$current_page] = $_REQUEST;
+    }
   }
 }
 
