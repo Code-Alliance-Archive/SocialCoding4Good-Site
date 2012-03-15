@@ -50,10 +50,10 @@ function form_session_saver_menu() {
  * variables saved to the session.
  */
 function form_session_saver_form($form, &$form_state) {
-  $form['form_session_saver_page'] = array(
+  $form['form_session_saver_pages'] = array(
     '#type' => 'textfield',
     '#title' => t('Path of the page to save'),
-    '#default_value' => variable_get('form_session_saver_page', ''),
+    '#default_value' => variable_get('form_session_saver_pages', ''),
     '#size' => 30,
     '#description' => t('To save multiple pages, space delimit them.  For ' .
                         'instance, the path should look like: volunteer home' .
@@ -72,8 +72,60 @@ function form_session_saver_form($form, &$form_state) {
       'comes from.'),
   );
 
+  $form['form_session_saver_landing_pages'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Landing pages and their values to save'),
+    '#default_value' => variable_get('form_session_saver_landing_pages', ''),
+    '#size' => 30,
+    '#description' => t('If you have a landing page that should set a '.
+                        'variable, specify the page and then the query string '.
+                        'with values that you want to set.  One landing page '.
+                        'per line.  Path must be lowercase. For instance, to '.
+                        'set the edit[submitted][company] field to MyCompany '.
+                        'when landing on the /mycompany page, enter the '.
+                        'following line: mycompany '.
+                        'edit[submitted][company]=MyCompany'),
+  );
+
   return system_settings_form($form);
 }
+
+/**
+ * Parses the form_session_saver_landing_pages variable that the user entered 
+ * into a map from pages to url-variables.  Returns the map.
+ */
+function get_landing_pages() {
+  $landing_page_text = variable_get('form_session_saver_landing_pages', '');
+  $landing_page_lines = preg_split('[\r\n]', $landing_page_text, -1, 
+                                   PREG_SPLIT_NO_EMPTY);
+  $landing_pages = array();
+  foreach ($landing_page_lines as $landing_page_line) {
+    $line_parts = preg_split('[ ]', $landing_page_line, -1, 
+                             PREG_SPLIT_NO_EMPTY);
+    $url_vars = array();
+    parse_str($line_parts[1], $url_vars);
+    $landing_pages[$line_parts[0]] = $url_vars;
+  }
+  return $landing_pages;
+}
+
+
+/**
+ * Adds the data in $saved_vars and $data_to_add to the $_REQUEST.  If 
+ * !$is_global, looks under the $current_page in $saved_vars.
+ */
+function add_to_request($is_global, $current_page, $saved_vars, $data_to_add) {
+  # If we already have something saved, adds the saved variables to the 
+  # current _REQUEST array.  Anything specified in $data_to_add has 
+  # precedence (so, if I specify something, it won't be overwritten by a saved
+  # value).
+  if ($is_global) {
+    $_REQUEST = array_merge($saved_vars, $data_to_add);
+  } else if (isset($saved_vars[$current_page])) {
+    $_REQUEST = array_merge($saved_vars[$current_page], $data_to_add);
+  }
+}
+
 
 /**
  * Implements hook_init
@@ -83,9 +135,11 @@ function form_session_saver_form($form, &$form_state) {
  */
 function form_session_saver_init() {
   $is_global = variable_get('form_session_saver_is_global', 1);
-  $pages_to_save_str = variable_get('form_session_saver_page', '');
+  $pages_to_save_str = variable_get('form_session_saver_pages', '');
   $pages_to_save = preg_split('[ ]', $pages_to_save_str, -1, 
                               PREG_SPLIT_NO_EMPTY);
+
+  $landing_pages = get_landing_pages();
 
   # If the path is an alias, look it up.  Otherwise, just use it directly.
   $current_page = drupal_lookup_path($action='alias', $path=$_GET['q']);
@@ -99,17 +153,18 @@ function form_session_saver_init() {
     if (!isset($_SESSION['form_session_saver_variables'])) {
       $_SESSION['form_session_saver_variables'] = array();
     }
+
     # We want to actually affect the session, so use a reference
     $saved_vars = &$_SESSION['form_session_saver_variables'];
 
-    # If we already have something saved, Adds the saved variables to the 
-    # current _REQUEST array.  Anything specified in the current array has 
-    # precedence (so, if I specify something, it won't be overwritten by a saved
-    # value).
-    if ($is_global) {
-      $_REQUEST = array_merge($saved_vars, $_REQUEST);
-    } else if (isset($saved_vars[$current_page])) {
-      $_REQUEST = array_merge($saved_vars[$current_page], $_REQUEST);
+    # add the current request and the saved values to the current request
+    add_to_request($is_global, $current_page, $saved_vars, $_REQUEST);
+
+    # if we're on a landing page, add the landing page's variables to the 
+    # request
+    if (array_key_exists($current_page, $landing_pages)) {
+      add_to_request($is_global, $current_page, $saved_vars, 
+                     $landing_pages[$current_page]);
     }
 
     # regardless of whether or not we loaded saved variables, we want to re-save
