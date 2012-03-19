@@ -1,0 +1,4 @@
+name = Webform email customizer
+description = Allows the admin to create custom emails that will be sent on any webform submission.  This allows more complex logic than the webform module.  Ie, if the company is abcd then send an email to address 1234).
+core = 7.x
+configure = admin/config/webform_email_customizer_form
