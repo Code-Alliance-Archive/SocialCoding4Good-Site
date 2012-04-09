@@ -1,0 +1,60 @@
+---
+# This is one email.  The email will only be sent if the form's node is id 26
+- webform_node_id: 26
+  # The email will only be sent if all of these conditions match.  That is, the
+  # form needs to have a text box with id form_test_1, and the user needs to put
+  # the value 1 into it.  Similaryl, the form needs a multi-select called
+  # form_test_3, and the user needs to have selected option1 and option2.
+  conditions:
+  - form_key: form_test_1
+    form_value: 1
+  - form_key: form_test_3
+    form_value:
+    - option1
+    - option2
+  # The remaining things are parameters for the SendGrid API call.  You can see
+  # the full documentation at
+  # http://docs.sendgrid.com/documentation/api/web-api/mail/#send
+  # The below parameters are all of the required ones.  You can include any
+  # others that are in SendGrid's web API, though.
+  api_user: my_sendgrid_login@mydomain.com
+  api_key: my_sendgrid_password
+  from: from_email@mydomain.com
+  to: to_email@example.com
+  subject: Put Your Subject Here
+  text: 
+    Hi. You can do a multiline string
+    like this
+# If you want a second email for a second form, you can have the webform_node_id
+# be the id of the second form.  If you want one form to possibly send different
+# emails depending on different conditions, you can have the same
+# webform_node_id.
+- webform_node_id: 25
+  conditions:
+  - form_key: form_test_2
+    form_value: 3
+  - form_key: form_test_3
+    form_value:
+    - option2
+    - option3
+  # The api_user and api_key will probably be the same for each email.  The
+  # other fields might be different.
+  api_user: my_sendgrid_login@mydomain.com
+  api_key: my_sendgrid_password
+  from: from_email@mydomain.com
+  # if you need to send an email to multiple people, you can do it like this
+  to: 
+  - to_email@example.com
+  - another_email@example.com
+  subject: Put Your Subject Here
+  # instead of text, you can send your email as html
+  # Note that if you want to use a multiline string with a colon, it needs to be
+  # quoted.
+  html: "<p>This html has multiple lines.</p>
+    <p>This is: the second line!</p>"
+  # it's okay to provide both a text and an html field.
+  # in any field, if you put %field_name%, then that will be replaced with the
+  # relevant field from the user's submission.  Since we know that form_test_2
+  # is 3 in this example, this will include a 3 in the text.
+  text: "Form Test 2 is: %form_test_2%"
+...
